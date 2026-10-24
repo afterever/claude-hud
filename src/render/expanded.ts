@@ -31,7 +31,8 @@ function projectLine(f: Frame): string | null {
   add(versionPart(f), 'version');
   add(extraPart(f), 'extra');
   add(durationPart(f), 'duration');
-  add(costPart(f), 'cost');
+  // Until cost is placed in elementOrder, it stays on the first line.
+  if (!(f.config?.elementOrder ?? DEFAULT_ELEMENT_ORDER).includes('cost')) add(costPart(f), 'cost');
   add(speedPart(f), 'speed');
   add(authPart(f), 'auth');
   add(customLinePart(f, 'last'));
@@ -51,6 +52,7 @@ function elementLine(f: Frame, element: HudElement, align: LabelAlign = {}): str
     case 'environment': return environmentLine(f);
     case 'sessionTime': return sessionTimeLine(f);
     case 'sessionTokens': return f.config?.display?.showSessionTokens ? sessionTokensSummary(f, t('label.tokens')) : null;
+    case 'cost': return costPart(f);
     default: return activityLine(f, element);
   }
 }

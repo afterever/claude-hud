@@ -164,6 +164,10 @@ const options = {
   'mergeGroups=[]': { display: { mergeGroups: [] } },
   'mergeGroups=project+context+usage': { display: { mergeGroups: [['project', 'context', 'usage']] } },
   'rightAlign=context': { display: { mergeGroups: [['project', 'context', 'usage']], rightAlign: ['context'] } },
+  'elementOrder+cost': {
+    elementOrder: ['project', 'context', 'usage', 'cost'],
+    display: { showCost: true, mergeGroups: [['context', 'usage', 'cost']] },
+  },
   'projectLineOrder': {
     projectLineOrder: ['project', 'model', 'cost'],
     display: { showCost: true },
