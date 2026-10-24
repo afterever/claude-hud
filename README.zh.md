@@ -182,6 +182,12 @@ Claude HUD 是一个[状态栏](https://code.claude.com/docs/en/statusline)命�
 | `display.showMemoryUsage` | boolean | false | 在展开布局中显示近似系统 RAM 使用行 |
 | `display.showPromptCache` | boolean | false | 显示主会话 prompt cache 的过期时刻 |
 | `display.showCacheHitRate` | boolean | false | 以 `Cache hit X%` 形式显示本会话的 prompt cache 命中率 |
+| `display.usageEmojiPace` | boolean | false | 分支选项。用 ⏳（5 小时）和 🐾（每周）代替 `Usage`/`Weekly` 标签，并在重置时间后附加带颜色的“用量 − 已过时间”差值，例如 `⏳ 40% (2h 52m/-3%)` |
+| `display.contextSizeIcon` | boolean | false | 分支选项。用 🐳（1M 窗口）、🦐（200k）或 🧠（其他）代替 `Context` 标签 |
+| `display.inlineLastReply` | boolean | false | 分支选项。在合并的上下文 + 用量行末尾追加 `\| 🔔 18:50`，即最后一次助手回复的时刻 |
+| `display.inlineDuration` | boolean | false | 分支选项。在合并的上下文 + 用量行末尾追加 `\| ⏱️  1h 30m`，即会话时长 |
+| `display.cacheOnTokensRow` | boolean | false | 分支选项。把缓存命中率（`🎯 94.3%`，需 `showCacheHitRate`）和 prompt cache 失效时刻（`💤 19:13 in 59m51s`，需 `showPromptCache`）放到 Tokens 行，并去掉它们各自的独立行 |
+| `display.modelEmoji` | boolean | false | 分支选项。用 👑 Opus、💎 Sonnet、✨ Haiku、🦄 Fable 表示模型系列，不带方括号 |
 | `display.customLine` | string | `""` | 显示在第一行的自定义文字（最多 80 个字符） |
 | `display.customLinePosition` | `first` \| `last` | `last` | 自定义文字放在第一行的开头还是结尾 |
 | `colors.context` | 颜色值 | `green` | 上下文进度条和百分比的基础颜色 |

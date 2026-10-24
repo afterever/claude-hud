@@ -176,6 +176,18 @@ export interface HudConfig {
     showSessionStartDate: boolean;
     showLastResponseAt: boolean;
     showCompactions: boolean;
+    // Fork options. All off by default, so upstream output is unchanged.
+    // ⏳ / 🐾 window labels, no `Usage` prefix, and a coloured `usage − elapsed` delta, e.g. `(2h 52m/-3%)`.
+    usageEmojiPace: boolean;
+    // 🐳 / 🦐 / 🧠 in place of the `Context` label, by context window size.
+    contextSizeIcon: boolean;
+    // `| 🔔 18:50` (last reply clock time) and `| ⏱️  1h 30m` (session time) after the merged context + usage row.
+    inlineLastReply: boolean;
+    inlineDuration: boolean;
+    // Cache hit rate and prompt-cache expiry on the Tokens row; the standalone rows are dropped.
+    cacheOnTokensRow: boolean;
+    // 👑 / 💎 / ✨ / 🦄 for the model family, without the surrounding brackets.
+    modelEmoji: boolean;
     mergeGroups: HudElement[][];
     // Elements pushed to the right edge of a merged line, when it fits and the width is known.
     rightAlign: HudElement[];
@@ -276,6 +288,12 @@ export const DEFAULT_CONFIG: HudConfig = {
     showSessionStartDate: false,
     showLastResponseAt: false,
     showCompactions: false,
+    usageEmojiPace: false,
+    contextSizeIcon: false,
+    inlineLastReply: false,
+    inlineDuration: false,
+    cacheOnTokensRow: false,
+    modelEmoji: false,
     mergeGroups: DEFAULT_MERGE_GROUPS.map(group => [...group]),
     rightAlign: [],
     contextWarningThreshold: 70,

@@ -3,7 +3,9 @@ import { DEFAULT_ELEMENT_ORDER, DEFAULT_MERGE_GROUPS, DEFAULT_PROJECT_LINE_ORDER
 import type { Frame } from './frame.js';
 import { activityLine } from './activity.js';
 import { separatorLine, visibleWidth } from './ansi.js';
+import { dim } from './colors.js';
 import { contextLine } from './context.js';
+import { sessionDuration } from './derive.js';
 import type { LabelAlign } from './labels.js';
 import { addedDirsLine, cacheHitRateLine, environmentLine, memoryLine, promptCacheLine, sessionTimeLine } from './lines.js';
 import { orderParts } from './order.js';
@@ -19,6 +21,19 @@ const ACTIVITY = new Set<HudElement>(['tools', 'skills', 'mcp', 'agents', 'todos
 
 function elementOrder(f: Frame): HudElement[] {
   return f.config?.elementOrder ?? DEFAULT_ELEMENT_ORDER;
+}
+
+function clockTime(date: Date): string {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+/** ` | ⏱️  1h 30m | 🔔 18:50` after a merged context + usage row; inlineDuration and inlineLastReply switch the halves on. */
+function contextRowSuffix(f: Frame, sequence: HudElement[]): string {
+  if (!sequence.includes('context') || !sequence.includes('usage')) return '';
+  const display = f.config?.display;
+  const duration = display?.inlineDuration ? sessionDuration(f) : '';
+  const repliedAt = display?.inlineLastReply ? f.transcript?.lastAssistantResponseAt : undefined;
+  return `${duration ? dim(` | ⏱️  ${duration}`) : ''}${repliedAt ? dim(` | 🔔 ${clockTime(repliedAt)}`) : ''}`;
 }
 
 function projectLine(f: Frame): string | null {
@@ -50,8 +65,9 @@ function elementLine(f: Frame, element: HudElement, align: LabelAlign = {}): str
     case 'addedDirs': return addedDirsLine(f);
     case 'context': return contextLine(f, align);
     case 'usage': return usageParts(f, 'expanded', align)?.join(' | ') ?? null;
-    case 'promptCache': return promptCacheLine(f);
-    case 'cacheHitRate': return cacheHitRateLine(f);
+    // With cacheOnTokensRow both live on the Tokens row instead.
+    case 'promptCache': return f.config?.display?.cacheOnTokensRow ? null : promptCacheLine(f);
+    case 'cacheHitRate': return f.config?.display?.cacheOnTokensRow ? null : cacheHitRateLine(f);
     case 'memory': return memoryLine(f, align);
     case 'environment': return environmentLine(f);
     case 'sessionTime': return sessionTimeLine(f);
@@ -129,7 +145,7 @@ export function expandedLines(f: Frame): string[] {
     const combined = entries.map(({ line }) => line).join(' │ ');
     if (f.width === null || visibleWidth(combined) <= f.width) {
       const aligned = f.width === null ? null : alignRight(entries, rightAlign, f.width);
-      rows.push({ line: aligned ?? combined, activity: entries.some(({ element: member }) => ACTIVITY.has(member)) });
+      rows.push({ line: `${aligned ?? combined}${contextRowSuffix(f, sequence)}`, activity: entries.some(({ element: member }) => ACTIVITY.has(member)) });
     } else {
       for (const { element: member, line } of entries) {
         rows.push({ line: elementLine(f, member, stackedAlign) ?? line, activity: ACTIVITY.has(member) });

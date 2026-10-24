@@ -182,6 +182,12 @@ Labels are available in English (the default), Simplified Chinese (`zh-Hans`, al
 | `display.showMemoryUsage` | boolean | false | Show an approximate system RAM usage line in expanded layout |
 | `display.showPromptCache` | boolean | false | Show when the main conversation's prompt cache expires |
 | `display.showCacheHitRate` | boolean | false | Show the session's prompt-cache hit rate as `Cache hit X%` |
+| `display.usageEmojiPace` | boolean | false | Fork option. Label the usage windows ⏳ (5h) and 🐾 (weekly) instead of `Usage`/`Weekly`, and append a coloured `usage − elapsed` delta to the reset time, e.g. `⏳ 40% (2h 52m/-3%)` |
+| `display.contextSizeIcon` | boolean | false | Fork option. Show 🐳 (1M window), 🦐 (200k) or 🧠 (other) in place of the `Context` label |
+| `display.inlineLastReply` | boolean | false | Fork option. Append `\| 🔔 18:50`, the clock time of the last assistant reply, to the merged context + usage row |
+| `display.inlineDuration` | boolean | false | Fork option. Append `\| ⏱️  1h 30m`, the session time, to the merged context + usage row |
+| `display.cacheOnTokensRow` | boolean | false | Fork option. Put the cache hit rate (`🎯 94.3%`, needs `showCacheHitRate`) and the prompt-cache expiry (`💤 19:13 in 59m51s`, needs `showPromptCache`) on the Tokens row, and drop their standalone rows |
+| `display.modelEmoji` | boolean | false | Fork option. Show the model family as 👑 Opus, 💎 Sonnet, ✨ Haiku or 🦄 Fable, with no surrounding brackets |
 | `display.customLine` | string | `""` | Custom text shown on the first line (80 characters max) |
 | `display.customLinePosition` | `first` \| `last` | `last` | Put the custom text at the start or the end of the first line |
 | `colors.context` | color value | `green` | Base color for the context bar and context percentage |

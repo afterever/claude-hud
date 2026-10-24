@@ -35,8 +35,16 @@ export function tokenBreakdown(f: Frame): string {
   return label(` (${t('format.in')}: ${input}, ${t('format.cache')}: ${cache})`, f.config?.colors);
 }
 
+/** 🐳 for a 1M window, 🦐 for 200k, 🧠 for any other or unreported size; null unless contextSizeIcon is on. */
+function sizeIcon(f: Frame): string | null {
+  if (!f.config?.display?.contextSizeIcon) return null;
+  const size = f.stdin.context_window?.context_window_size;
+  if (typeof size !== 'number') return '🧠';
+  return size >= 1_000_000 ? '🐳' : size <= 200_000 ? '🦐' : '🧠';
+}
+
 export function contextLine(f: Frame, align: LabelAlign = {}): string {
   const { bar, value } = contextBarAndValue(f);
-  const prefix = barLabel('label.context', f.config?.colors, align);
+  const prefix = sizeIcon(f) ?? barLabel('label.context', f.config?.colors, align);
   return `${prefix} ${bar ? `${bar} ` : ''}${value}${tokenBreakdown(f)}`;
 }
