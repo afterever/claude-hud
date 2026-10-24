@@ -17,6 +17,10 @@ import { t } from '../i18n/index.js';
 
 const ACTIVITY = new Set<HudElement>(['tools', 'skills', 'mcp', 'agents', 'todos']);
 
+function elementOrder(f: Frame): HudElement[] {
+  return f.config?.elementOrder ?? DEFAULT_ELEMENT_ORDER;
+}
+
 function projectLine(f: Frame): string | null {
   const display = f.config?.display;
   const parts: Part[] = [];
@@ -32,7 +36,7 @@ function projectLine(f: Frame): string | null {
   add(extraPart(f), 'extra');
   add(durationPart(f), 'duration');
   // Until cost is placed in elementOrder, it stays on the first line.
-  if (!(f.config?.elementOrder ?? DEFAULT_ELEMENT_ORDER).includes('cost')) add(costPart(f), 'cost');
+  if (!elementOrder(f).includes('cost')) add(costPart(f), 'cost');
   add(speedPart(f), 'speed');
   add(authPart(f), 'auth');
   add(customLinePart(f, 'last'));
@@ -74,7 +78,7 @@ interface Row {
 
 /** The expanded layout: one row per element in elementOrder, merging adjacent mergeGroups members. */
 export function expandedLines(f: Frame): string[] {
-  const order = f.config?.elementOrder ?? DEFAULT_ELEMENT_ORDER;
+  const order = elementOrder(f);
   const groups = new Map<HudElement, Set<HudElement>>();
   for (const group of f.config?.display?.mergeGroups ?? DEFAULT_MERGE_GROUPS) {
     const members = new Set(group);

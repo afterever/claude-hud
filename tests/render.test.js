@@ -392,6 +392,20 @@ test('the session token summary keeps its last line until elementOrder places it
   assert.deepEqual(lines(ctx({ transcript, config: { ...placed, display: {} } })).length, 1, 'placed but turned off draws nothing');
 });
 
+test('cost keeps its first-line spot until elementOrder places it', () => {
+  const stdin = { cost: { total_cost_usd: 1.2345 } };
+  const show = { showCost: true };
+  assert.match(lines(ctx({ stdin, config: { display: show } }))[0], /│ Cost \$1\.23$/, 'the default order keeps it on the first line');
+  assert.match(lines(ctx({ stdin, config: { display: show, elementOrder: ['project', 'context'] } }))[0], /│ Cost \$1\.23$/, 'so does an older custom order');
+
+  const placed = { display: show, elementOrder: ['project', 'cost', 'context'] };
+  const [first, cost, context] = lines(ctx({ stdin, config: placed }));
+  assert.doesNotMatch(first, /Cost/);
+  assert.equal(cost, 'Cost $1.23');
+  assert.match(context, /^Context/);
+  assert.deepEqual(lines(ctx({ stdin, config: { ...placed, display: {} } })).length, 2, 'placed but turned off draws nothing');
+});
+
 test('wrap width: columns, then maxWidth, and forceMaxWidth overrides columns', () => {
   const long = ctx({ usageData: usage(), config: { maxWidth: 40 } });
   assert.equal(lines(long).length, 3, 'maxWidth applies when the width is unknown');
