@@ -119,6 +119,12 @@ export interface HudConfig {
         showSessionStartDate: boolean;
         showLastResponseAt: boolean;
         showCompactions: boolean;
+        usageEmojiPace: boolean;
+        contextSizeIcon: boolean;
+        inlineLastReply: boolean;
+        inlineDuration: boolean;
+        cacheOnTokensRow: boolean;
+        modelEmoji: boolean;
         mergeGroups: HudElement[][];
         rightAlign: HudElement[];
         contextWarningThreshold: number;

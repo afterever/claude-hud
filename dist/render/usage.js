@@ -1,9 +1,24 @@
 import { t } from '../i18n/index.js';
 import { isLimitReached } from '../types.js';
 import { FIVE_HOUR_WINDOW_MS, SEVEN_DAY_WINDOW_MS, resolveUsagePaces } from '../usage-pace.js';
-import { critical, formatQuotaPercent, label, quotaBar } from './colors.js';
+import { critical, formatQuotaPercent, green, label, quotaBar, red, yellow } from './colors.js';
 import { barLabel } from './labels.js';
 import { formatResetTime, formatWindowTime, limitTimeFormat, wallClock } from './time.js';
+/** How much of the window has passed, 0-100; null without a reset time. */
+function elapsedPercent(resetAt, windowMs, now) {
+    if (!resetAt)
+        return null;
+    const elapsed = ((now - (resetAt.getTime() - windowMs)) / windowMs) * 100;
+    return Math.max(0, Math.min(100, Math.round(elapsed)));
+}
+/** Usage minus elapsed time, e.g. `+12%`: green below 0, yellow up to +15, red beyond. */
+function paceDelta(usagePercent, elapsed) {
+    const delta = Math.round((usagePercent ?? 0) - elapsed);
+    const text = `${delta >= 0 ? '+' : ''}${delta}%`;
+    if (delta < 0)
+        return green(text);
+    return delta <= 15 ? yellow(text) : red(text);
+}
 function formatWindow(f, layout, w, align) {
     const display = f.config?.display;
     const colors = f.config?.colors;
@@ -15,12 +30,16 @@ function formatWindow(f, layout, w, align) {
             ? `${label(`${w.label}:`, colors)} ${percent} ${label(`(${reset})`, colors)}`
             : `${label(`${w.label}:`, colors)} ${percent}`;
     }
+    const elapsed = w.emoji ? elapsedPercent(w.resetAt, w.windowMs, f.now) : null;
+    const delta = reset && elapsed !== null ? `/${paceDelta(w.percent, elapsed)}` : '';
     const elapsedMode = timeFormat === 'elapsed' || timeFormat === 'elapsedAndAbsolute';
     const wording = (display?.showResetLabel ?? true) && !elapsedMode;
-    const resetText = reset && wording ? `${t(timeFormat === 'absolute' ? 'format.resets' : 'format.resetsIn')} ${reset}` : reset;
-    const styledLabel = w.labelKey ? barLabel(w.labelKey, colors, align) : label(w.label, colors);
+    const resetText = delta
+        ? `${reset}${delta}`
+        : reset && wording ? `${t(timeFormat === 'absolute' ? 'format.resets' : 'format.resetsIn')} ${reset}` : reset;
+    const styledLabel = w.emoji ?? (w.labelKey ? barLabel(w.labelKey, colors, align) : label(w.label, colors));
     if (display?.usageBarEnabled ?? true) {
-        const barReset = layout === 'compact' && timeFormat === 'relative' && reset
+        const barReset = layout === 'compact' && timeFormat === 'relative' && reset && !delta
             ? `${reset} / ${w.durationLabel ?? w.label}`
             : resetText;
         const body = `${quotaBar(w.percent ?? 0, f.barWidth, colors, w.pace)} ${percent}${barReset ? ` (${barReset})` : ''}`;
@@ -79,15 +98,19 @@ export function usageParts(f, layout, align = {}) {
     if (effectiveUsage < (display?.usageThreshold ?? 0) && !paces.alert) {
         return balance ? [compact ? balance : withLabel(balance)] : null;
     }
+    const emojiPace = display?.usageEmojiPace === true;
     const fiveHour = () => formatWindow(f, layout, {
         label: '5h',
+        emoji: emojiPace ? '⏳' : undefined,
         percent: usage.fiveHour,
         resetAt: usage.fiveHourResetAt,
         windowMs: FIVE_HOUR_WINDOW_MS,
         pace: paces.fiveHour,
+        forceLabel: emojiPace,
     }, align);
     const sevenDay = () => formatWindow(f, layout, {
         label: display?.usageCompact ? '7d' : t('label.weekly'),
+        emoji: emojiPace && !display?.usageCompact ? '🐾' : undefined,
         labelKey: 'label.weekly',
         percent: usage.sevenDay,
         resetAt: usage.sevenDayResetAt,
@@ -107,13 +130,16 @@ export function usageParts(f, layout, align = {}) {
         const [first, ...rest] = scoped;
         return first ? withBalance([withLabel(first), ...rest]) : balance ? [withLabel(balance)] : null;
     }
+    // Emoji labels name the windows already, so they drop the `Usage` prefix and share one part.
     if (usage.fiveHour === null) {
         const weekly = sevenDay();
-        return withBalance([compact ? weekly : withLabel(weekly), ...scoped]);
+        return withBalance([compact || emojiPace ? weekly : withLabel(weekly), ...scoped]);
     }
-    const parts = [withLabel(fiveHour())];
+    const windows = [fiveHour()];
     if (paces.showSevenDay)
-        parts.push(sevenDay());
-    return withBalance([...parts, ...scoped]);
+        windows.push(sevenDay());
+    if (emojiPace)
+        return withBalance([windows.join(' '), ...scoped]);
+    return withBalance([withLabel(windows[0]), ...windows.slice(1), ...scoped]);
 }
 //# sourceMappingURL=usage.js.map

@@ -5,7 +5,7 @@ export interface Part {
     key: FirstLineSegment | null;
     text: string;
 }
-/** `[Opus 5.5 ◑ high | Bedrock]`, or with the provider first when showProvider is on. */
+/** `[Opus 5.5 ◑ high | Bedrock]`, or with the provider first when showProvider is on; modelEmoji gives `👑 ◑` with no brackets. */
 export declare function modelBadge(f: Frame): string;
 /** Linked added-dir names, capped at five; `prefix` is the inline `+`. */
 export declare function addedDirs(f: Frame, prefix: string, joiner: string): string | null;
@@ -26,7 +26,7 @@ export declare function authPart(f: Frame): string | null;
 export declare function customLinePart(f: Frame, position: 'first' | 'last'): string | null;
 /** `2 CLAUDE.md`, `3 rules`, `4 MCPs`, `1 hooks`, once their total reaches environmentThreshold. */
 export declare function configCountParts(f: Frame, mcpSuffix?: string): string[];
-/** `Tokens 262k (in: 6k, out: 2k, cache: 254k)` from the transcript's session totals. */
+/** `Tokens 262k (in: 6k, out: 2k, cache: 254k)` from the transcript's session totals; cacheOnTokensRow appends ` 🎯 94.3% 💤 19:13 in 59m51s`. */
 export declare function sessionTokensSummary(f: Frame, prefix: string): string | null;
 export declare function compactionsPart(f: Frame): string | null;
 //# sourceMappingURL=parts.d.ts.map

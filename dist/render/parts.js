@@ -8,7 +8,7 @@ import { formatTokens } from '../utils/format.js';
 import { getFileHref, safeHyperlink } from '../utils/hyperlinks.js';
 import { displayLabel, sanitizeDisplayText } from '../utils/sanitize.js';
 import { truncateString } from '../utils/truncate.js';
-import { custom, dim, label, model as modelColor, project as projectColor } from './colors.js';
+import { custom, dim, getContextColor, label, model as modelColor, project as projectColor, RESET, warning } from './colors.js';
 import { claudeCodeVersion, effort, sessionCostUsd, sessionDuration, sessionName } from './derive.js';
 import { vcsPart } from './vcs.js';
 function effortSuffix(f) {
@@ -16,10 +16,13 @@ function effortSuffix(f) {
     const info = display?.showEffortLevel ? effort(f) : null;
     return info ? ` ${formatEffort(info, display?.effortFormat)}` : '';
 }
-/** `[Opus 5.5 ◑ high | Bedrock]`, or with the provider first when showProvider is on. */
+const MODEL_EMOJI = { opus: '👑', sonnet: '💎', haiku: '✨', fable: '🦄' };
+const MODEL_FAMILY = /^(?:Claude\s+)?(Opus|Sonnet|Haiku|Fable)\b/i;
+/** `[Opus 5.5 ◑ high | Bedrock]`, or with the provider first when showProvider is on; modelEmoji gives `👑 ◑` with no brackets. */
 export function modelBadge(f) {
     const display = f.config?.display;
-    const name = sanitizeDisplayText(formatModelName(resolveModelName(f.stdin, f.transcript, display?.modelSource), display?.modelFormat, display?.modelOverride));
+    const formatted = sanitizeDisplayText(formatModelName(resolveModelName(f.stdin, f.transcript, display?.modelSource), display?.modelFormat, display?.modelOverride));
+    const name = display?.modelEmoji ? formatted.replace(MODEL_FAMILY, (_, family) => MODEL_EMOJI[family.toLowerCase()]) : formatted;
     const core = `${name}${effortSuffix(f)}`;
     const provider = getProviderLabel(f.stdin);
     let text = provider ? `${core} | ${provider}` : core;
@@ -27,7 +30,7 @@ export function modelBadge(f) {
         const shown = display.providerName?.trim() || provider;
         text = shown ? `${shown} | ${core}` : core;
     }
-    return modelColor(`[${text}]`, f.config?.colors);
+    return modelColor(display?.modelEmoji ? text : `[${text}]`, f.config?.colors);
 }
 const pathSegments = (path) => path.split(/[/\\]/).filter(Boolean);
 /** An untrusted cwd shown with the configured number of trailing segments, on POSIX and Windows. */
@@ -187,7 +190,33 @@ export function configCountParts(f, mcpSuffix = '') {
         f.hooksCount > 0 ? label(`${f.hooksCount} ${t('label.hooks')}`, colors) : null,
     ].filter((part) => part !== null);
 }
-/** `Tokens 262k (in: 6k, out: 2k, cache: 254k)` from the transcript's session totals. */
+const CACHE_TTL_SECONDS = { '5m': 300, '1h': 3600 };
+/** `💤 19:13 in 59m51s` until the prompt cache expires, `💤 expired` once cold; null before caching is observed. */
+function promptCacheTimer(f) {
+    const cache = f.stdin.prompt_cache;
+    if (!f.config?.display?.showPromptCache || !cache?.caching_observed)
+        return null;
+    const colors = f.config?.colors;
+    const expiresAtMs = typeof cache.expires_at === 'number' ? cache.expires_at * 1000 : 0;
+    const remainingMs = cache.warm ? expiresAtMs - f.now : 0;
+    if (remainingMs <= 0)
+        return label(`💤 ${t('status.expired')}`, colors);
+    const warnMs = Math.max(60, Math.floor((CACHE_TTL_SECONDS[cache.ttl ?? ''] ?? 300) / 5)) * 1000;
+    const totalSeconds = Math.max(0, Math.round(remainingMs / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const at = new Date(Math.floor(expiresAtMs / 60000) * 60000);
+    const clock = `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
+    const left = `💤 ${clock} in ${minutes > 0 ? `${minutes}m` : ''}${totalSeconds % 60}s`;
+    return remainingMs <= warnMs ? warning(left, colors) : `${getContextColor(0, colors)}${left}${RESET}`;
+}
+/** `🎯 94.3%`: the prompt-cache hit rate, when showCacheHitRate is on and the ratio is known. */
+function cacheHitText(f) {
+    const ratio = f.stdin.prompt_cache?.hit_ratio;
+    if (f.config?.display?.showCacheHitRate !== true || typeof ratio !== 'number' || !Number.isFinite(ratio))
+        return '';
+    return ` 🎯 ${Math.min(100, Math.max(0, ratio * 100)).toFixed(1)}%`;
+}
+/** `Tokens 262k (in: 6k, out: 2k, cache: 254k)` from the transcript's session totals; cacheOnTokensRow appends ` 🎯 94.3% 💤 19:13 in 59m51s`. */
 export function sessionTokensSummary(f, prefix) {
     const tokens = f.transcript.sessionTokens;
     if (!tokens)
@@ -199,7 +228,11 @@ export function sessionTokensSummary(f, prefix) {
     const cache = tokens.cacheCreationTokens + tokens.cacheReadTokens;
     if (cache > 0)
         parts.push(`${t('format.cache')}: ${formatTokens(cache)}`);
-    return label(`${prefix} ${formatTokens(total)} (${parts.join(', ')})`, f.config?.colors);
+    const summary = `${prefix} ${formatTokens(total)} (${parts.join(', ')})`;
+    if (!f.config?.display?.cacheOnTokensRow)
+        return label(summary, f.config?.colors);
+    const timer = promptCacheTimer(f);
+    return label(`${summary}${cacheHitText(f)}`, f.config?.colors) + (timer ? ` ${timer}` : '');
 }
 export function compactionsPart(f) {
     const count = f.transcript.compactionCount ?? 0;

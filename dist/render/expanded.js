@@ -1,7 +1,9 @@
 import { DEFAULT_ELEMENT_ORDER, DEFAULT_MERGE_GROUPS, DEFAULT_PROJECT_LINE_ORDER } from '../config.js';
 import { activityLine } from './activity.js';
 import { separatorLine, visibleWidth } from './ansi.js';
+import { dim } from './colors.js';
 import { contextLine } from './context.js';
+import { sessionDuration } from './derive.js';
 import { addedDirsLine, cacheHitRateLine, environmentLine, memoryLine, promptCacheLine, sessionTimeLine } from './lines.js';
 import { orderParts } from './order.js';
 import { advisorPart, authPart, compactionsPart, costPart, customLinePart, durationPart, extraPart, modelBadge, projectParts, sessionNamePart, sessionTokensSummary, speedPart, versionPart, } from './parts.js';
@@ -11,6 +13,18 @@ import { t } from '../i18n/index.js';
 const ACTIVITY = new Set(['tools', 'skills', 'mcp', 'agents', 'todos']);
 function elementOrder(f) {
     return f.config?.elementOrder ?? DEFAULT_ELEMENT_ORDER;
+}
+function clockTime(date) {
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+/** ` | ⏱️  1h 30m | 🔔 18:50` after a merged context + usage row; inlineDuration and inlineLastReply switch the halves on. */
+function contextRowSuffix(f, sequence) {
+    if (!sequence.includes('context') || !sequence.includes('usage'))
+        return '';
+    const display = f.config?.display;
+    const duration = display?.inlineDuration ? sessionDuration(f) : '';
+    const repliedAt = display?.inlineLastReply ? f.transcript?.lastAssistantResponseAt : undefined;
+    return `${duration ? dim(` | ⏱️  ${duration}`) : ''}${repliedAt ? dim(` | 🔔 ${clockTime(repliedAt)}`) : ''}`;
 }
 function projectLine(f) {
     const display = f.config?.display;
@@ -45,8 +59,9 @@ function elementLine(f, element, align = {}) {
         case 'addedDirs': return addedDirsLine(f);
         case 'context': return contextLine(f, align);
         case 'usage': return usageParts(f, 'expanded', align)?.join(' | ') ?? null;
-        case 'promptCache': return promptCacheLine(f);
-        case 'cacheHitRate': return cacheHitRateLine(f);
+        // With cacheOnTokensRow both live on the Tokens row instead.
+        case 'promptCache': return f.config?.display?.cacheOnTokensRow ? null : promptCacheLine(f);
+        case 'cacheHitRate': return f.config?.display?.cacheOnTokensRow ? null : cacheHitRateLine(f);
         case 'memory': return memoryLine(f, align);
         case 'environment': return environmentLine(f);
         case 'sessionTime': return sessionTimeLine(f);
@@ -116,7 +131,7 @@ export function expandedLines(f) {
         const combined = entries.map(({ line }) => line).join(' │ ');
         if (f.width === null || visibleWidth(combined) <= f.width) {
             const aligned = f.width === null ? null : alignRight(entries, rightAlign, f.width);
-            rows.push({ line: aligned ?? combined, activity: entries.some(({ element: member }) => ACTIVITY.has(member)) });
+            rows.push({ line: `${aligned ?? combined}${contextRowSuffix(f, sequence)}`, activity: entries.some(({ element: member }) => ACTIVITY.has(member)) });
         }
         else {
             for (const { element: member, line } of entries) {

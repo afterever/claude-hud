@@ -32,9 +32,18 @@ export function tokenBreakdown(f) {
     const cache = formatTokens((usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0));
     return label(` (${t('format.in')}: ${input}, ${t('format.cache')}: ${cache})`, f.config?.colors);
 }
+/** 🐳 for a 1M window, 🦐 for 200k, 🧠 for any other or unreported size; null unless contextSizeIcon is on. */
+function sizeIcon(f) {
+    if (!f.config?.display?.contextSizeIcon)
+        return null;
+    const size = f.stdin.context_window?.context_window_size;
+    if (typeof size !== 'number')
+        return '🧠';
+    return size >= 1_000_000 ? '🐳' : size <= 200_000 ? '🦐' : '🧠';
+}
 export function contextLine(f, align = {}) {
     const { bar, value } = contextBarAndValue(f);
-    const prefix = barLabel('label.context', f.config?.colors, align);
+    const prefix = sizeIcon(f) ?? barLabel('label.context', f.config?.colors, align);
     return `${prefix} ${bar ? `${bar} ` : ''}${value}${tokenBreakdown(f)}`;
 }
 //# sourceMappingURL=context.js.map
